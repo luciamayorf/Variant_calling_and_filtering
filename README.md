@@ -9,7 +9,7 @@ We will use the WGS model from [DeepVariant](https://github.com/google/deepvaria
 
 For the pseudoatosomal regions, we will establish a standard PAR1 region of 7 Mb in the beginning and at the end of the X chromosome, according to the existing bibliography: between [6 Mb](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5155386/)-[6.5Mb](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5522595/) and [10 Mb](https://onlinelibrary.wiley.com/doi/full/10.1111/eva.13302).
 
-We will use the script [variant_calling_deepvariant.sh]() <${input_bam}> <ref_genome> <files_list> <output_directory>:
+We will use the script [variant_calling_deepvariant.sh](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/variant_calling_deepvariant.sh) <{input_bam}> <ref_genome> <files_list> <output_directory>:
 
 ```bash
 for input_bam in $(ls /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_bams/novogene_lp_sept23/*_sorted_rg_merged_sorted_rmdup_indelrealigner.bam); do 
@@ -18,7 +18,7 @@ for input_bam in $(ls /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome
 done
 ```
 
-We later perform a small quality check with [bcftools stats](https://samtools.github.io/bcftools/bcftools.html#stats) to make sure everything went correctly and there are not weird samples. It doesn't take long to perform the operation, so I can just run in interactively in a loop.
+We later perform a small quality check with [bcftools stats](https://samtools.github.io/bcftools/bcftools.html#stats) to make sure everything went correctly and there are not weird samples. It doesn't take long to perform the operation, so I can just run it interactively in a loop.
 
 ```bash
 module load samtools
@@ -44,7 +44,7 @@ ls /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1
 
 CAUTION: GLnexus creates a directory "GLnexus.DB" in the folder where the job is launched. If that folder already exists, the program won't run.
 
-Now we can run the script [glnexus_script.sh]() <gvcfs_list> <output_file>: 
+Now we can run the script [glnexus_script.sh](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/glnexus_script.sh) <gvcfs_list> <output_file>: 
 ```bash
 sbatch -c 30 --mem=100G -t 03:00:00 /home/csic/eye/lmf/scripts/glnexus_script.sh /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_gvcfs/novogene_lp_sept2023/novogene_lp_sep2023_gvcfs_list.txt /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref_originalnames.vcf.gz 
 ```
