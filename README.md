@@ -59,6 +59,8 @@ Before filtering, we need to identify the repetitive regions in our reference ge
 
 REDACTAR
 
+---
+
 ### 1. First round filtering (filters 1 to 5)
 
 We are going to apply the following filters to the VCF file:
@@ -97,6 +99,7 @@ sbatch -t 00:10:00 -c 5 --mem 10GB /home/csic/eye/lmf/scripts/variant_filtering/
 | Filter4      |     1721036    |   89239           |
 | Filter5      |     1354440    |   366596          |
 
+---
 
 ### 2. Mean read depth filtering
 
@@ -141,12 +144,25 @@ Now we have the following number of SNPs:
 | Filter5      |     1354440    |   366596          |
 | Mean_rd      |     1327386    |   27054           |
 
+---
+
 ### 3. Missing genotypes filtering
 
-Firstly, we will generate a plot with the % of SNPs that would be included when the proportion of missing data allowed is increased, using the script [missingness_plot.R](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/missingness_plot.R) <input_data> <output_directory>
+We will apply a genotype missingness filtering to avoid analyzing variants that are not informative enough and might introduce noise into our results.
+
+First, we will calculate the number of missing genotypes for each SNP in order to draw a distribution of data missingness across the entire genome.
+```{bash}
+bcftools query -f '%CHROM:%POS\t[%GT\t]\n' c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.vcf | awk '{missing=0; for(i=2; i<=NF; i++) if($i=="./.") missing++; print $1, missing}' > ./missingness_filtering/missing_gt_count_c_lp_novogene_sept23.txt
+```
+
+Then, we will generate a plot with the % of SNPs that would be included when the proportion of missing data allowed is increased, using the script [missingness_plot.R](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/missingness_plot.R) <input_data> <output_directory>
 ```{bash}
 Rscript /home/csic/eye/lmf/scripts/variant_filtering/missingness_plot.R /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/missingness_filtering/missing_gt_count_c_lp_novogene_sept23.txt /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/missingness_filtering/
 ```
 [cumulative_miss_plot.pdf](https://github.com/luciamayorf/Variant_calling_and_filtering/files/14422118/cumulative_miss_plot.pdf)
 
+
+#### Checking genotype missingness per sample
+
+We will check if all the samples have a similar proportion of missing data.
 
