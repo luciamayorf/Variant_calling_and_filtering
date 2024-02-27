@@ -46,5 +46,30 @@ CAUTION: GLnexus creates a directory "GLnexus.DB" in the folder where the job is
 
 Now we can run the script [glnexus_script.sh](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/glnexus_script.sh) <gvcfs_list> <output_file>: 
 ```bash
-sbatch -c 30 --mem=100G -t 03:00:00 /home/csic/eye/lmf/scripts/glnexus_script.sh /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_gvcfs/novogene_lp_sept2023/novogene_lp_sep2023_gvcfs_list.txt /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref_originalnames.vcf.gz 
+sbatch -c 30 --mem=100G -t 03:00:00 /home/csic/eye/lmf/scripts/glnexus_script.sh /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_gvcfs/novogene_lp_sept2023/novogene_lp_sep2023_gvcfs_list.txt /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref_originalnames.vcf.gz
+```
+
+---
+
+## Variant filtering
+
+### 0. Identification of repetitive regions
+
+Before filtering, we need to identify the repetitive regions in our reference genome. 
+
+REDACTAR
+
+### 1. First round filtering (filters 1 to 5)
+
+We are going to apply the following filters to the VCF file:
+
+1.  Filter 1: removing variants in *repetitive/low complexity* regions.
+2.  Filter 2: removing *non-biallic* sites.
+3.  Filter 3: removing *invariant* sites (they would be singletons of the reference genome).
+4.  Filter 4: removing variants with a *low quality score*. I think QUAL >= 20 should be enough (99% confident that the genotype is real)
+5.  Filter 5: removing *indels*.
+
+We apply the filters by running the script [variant_filter_1to5.sh](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/variant_filter_1to5.sh) <ref.fa> <in.vcf> <masked_regions.bed>
+```bash
+sbatch -t 00:30:00 -c 5 --mem 10GB /home/csic/eye/lmf/scripts/variant_filtering/variant_filter_1to5_nottested.sh /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/reference_genomes/lynx_pardinus_mLynPar1.2/mLynPar1.2.scaffolds.revcomp.scaffolds.fa /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref.vcf.gz /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/reference_genomes/lynx_pardinus_mLynPar1.2/repeats_lowcomplexity_mLynPar1.2.scaffolds.revcomp_merged.bed
 ```
