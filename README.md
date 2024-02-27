@@ -63,13 +63,82 @@ REDACTAR
 
 We are going to apply the following filters to the VCF file:
 
-1.  Filter 1: removing variants in *repetitive/low complexity* regions.
-2.  Filter 2: removing *non-biallic* sites.
-3.  Filter 3: removing *invariant* sites (they would be singletons of the reference genome).
-4.  Filter 4: removing variants with a *low quality score*. I think QUAL >= 20 should be enough (99% confident that the genotype is real)
-5.  Filter 5: removing *indels*.
+1.  Filter 1: removing variants in **repetitive/low complexity** regions.
+2.  Filter 2: removing **non-biallic** sites.
+3.  Filter 3: removing **invariant**sites (they would be singletons of the reference genome).
+4.  Filter 4: removing variants with a **low quality score**. I think QUAL >= 20 should be enough (99% confident that the genotype is real)
+5.  Filter 5: removing **indels**.
 
 We apply the filters by running the script [variant_filter_1to5.sh](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/variant_filter_1to5.sh) <ref.fa> <in.vcf> <masked_regions.bed>
 ```bash
-sbatch -t 00:30:00 -c 5 --mem 10GB /home/csic/eye/lmf/scripts/variant_filtering/variant_filter_1to5_nottested.sh /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/reference_genomes/lynx_pardinus_mLynPar1.2/mLynPar1.2.scaffolds.revcomp.scaffolds.fa /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref.vcf.gz /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/reference_genomes/lynx_pardinus_mLynPar1.2/repeats_lowcomplexity_mLynPar1.2.scaffolds.revcomp_merged.bed
+sbatch -t 00:30:00 -c 5 --mem 10GB /home/csic/eye/lmf/scripts/variant_filtering/variant_filter_1to5.sh /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/reference_genomes/lynx_pardinus_mLynPar1.2/mLynPar1.2.scaffolds.revcomp.scaffolds.fa /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref.vcf.gz /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/reference_genomes/lynx_pardinus_mLynPar1.2/repeats_lowcomplexity_mLynPar1.2.scaffolds.revcomp_merged.bed
 ```
+These are the number of SNPs removed in each of the filters:
+| Filter       | N of variants  | Filtered variants |
+|:-------------|:--------------:|:-----------------:|
+| No filter    |     4288231    |   0               |
+| Filter1      |     2062793    |   2225438         |
+| Filter2      |     1816919    |   245874          |
+| Filter3      |     1810275    |   6644            |
+| Filter4      |     1663124    |   147151          |
+| Filter5      |     1325874    |   337250          |
+
+To obtain the VCFs with the QUAL20 filter (I will probably use this VCF from now on), I run the script [variant_filter_1to5_QUAL20.sh]() <ref.fa> <in.vcf>:
+```{bash}
+sbatch -t 00:10:00 -c 5 --mem 10GB /home/csic/eye/lmf/scripts/variant_filtering/variant_filter_1to5_QUAL20.sh /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/reference_genomes/lynx_pardinus_mLynPar1.2/mLynPar1.2.scaffolds.revcomp.scaffolds.fa /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref.vcf.gz #job ID: 5990353
+```
+
+| Filter       | N of variants  | Filtered variants |
+|:-------------|:--------------:|:-----------------:|
+| No filter    |     4288231    |   0               |
+| Filter1      |     2062793    |   2225438         |
+| Filter2      |     1816919    |   245874          |
+| Filter3      |     1810275    |   6644            |
+| Filter4      |     1721036    |   89239           |
+| Filter5      |     1354440    |   366596          |
+
+
+### 2. Mean read depth filtering
+
+After testing how to filter each individual mean read depth, we saw that most windows were shared across individuals, so we decided to apply this filter for the whole population.
+
+#### Calculating the mean read depth in 10kbp windows
+
+First we will calculate mean read depth in consecutive 10kbp windows along the genome using [mosdepth](https://github.com/brentp/mosdepth), which generates a bed file with the mean coverage per 10kbp window.
+
+I run the script [mean_rd_filtering_bed_generation.sh](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/depth_filtering_bed_generation.sh) <input_bam> <output_path>:
+```bash
+for input_bam in $(ls /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_bams/novogene_lp_sept23/*_sorted_rg_merged_sorted_rmdup_indelrealigner.bam); do 
+  job_id=$(sbatch -c 16 --mem=10GB -t 00:15:00 /home/csic/eye/lmf/scripts/variant_filtering/depth_filtering_bed_generation.sh ${input_bam} /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/depth_filtering | awk '{print $4}')
+    echo "${job_id} ${input_bam}" >> /mnt/lustre/scratch/nlsas/home/csic/eye/lmf/logs/mosdepth/job_ids_depth_filtering_bed_generation.txt
+done
+```
+
+CAUTION: from now on, we will also **exclude the scaffolds**, as they usually present very high read depth values (and very few defined 10kbp windows, as they are quite small). If I ever need to recover this information, I would need to apply a different depth coverage filter for these scaffolds.
+
+#### Obtaining the bed of excluded windows
+
+To obtain the bed file with the excluded windows and a plot of the mean read depth distribution, I run the script [mean_rd_filter_population_bed.R](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/mean_rd_filter_population_bed.R) <input_directory> <samples_list> <output_directory>
+
+```bash
+Rscript /home/csic/eye/lmf/scripts/variant_filtering/mean_rd_filter_population_bed.R /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/depth_filtering/ <(cut -f1,2 -d'_' /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/FASTQ_files/novogene_lp_sept2023/fastq_samples_list.txt | sort -u) /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/depth_filtering/
+```
+
+#### Applying the filter
+
+We decide to apply the mean+0.5*sd as the read-depth cutoff for the population analysis, using the script [variant_filter_rd.sh](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/variant_filter_rd.sh). 1182 windows will be excluded (out of a total of 242578 windows: ~0.49% of windows excluded).
+```bash
+sbatch -c 5 --mem=5GB -t 00:10:00 /home/csic/eye/lmf/scripts/variant_filtering/variant_filter_rd.sh /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20.vcf /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/depth_filtering/excluded_windows_mean_rd_pop_filter.bed 
+```
+Now we have the following number of SNPs:
+| Filter       | N of variants  | Filtered variants |
+|:-------------|:--------------:|:-----------------:|
+| No filter    |     4288231    |   0               |
+| Filter1      |     2062793    |   2225438         |
+| Filter2      |     1816919    |   245874          |
+| Filter3      |     1810275    |   6644            |
+| Filter4      |     1721036    |   89239           |
+| Filter5      |     1354440    |   366596          |
+| Mean_rd      |     1327386    |   27054           |
+
+### 3. Missing genotypes filtering
