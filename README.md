@@ -142,3 +142,11 @@ Now we have the following number of SNPs:
 | Mean_rd      |     1327386    |   27054           |
 
 ### 3. Missing genotypes filtering
+
+Firstly, we will generate a plot with the % of SNPs that would be included when the proportion of missing data allowed is increased, using the script [missingness_plot.R](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/missingness_plot.R) <input_data> <output_directory>
+```{bash}
+Rscript /home/csic/eye/lmf/scripts/variant_filtering/missingness_plot.R /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/missingness_filtering/missing_gt_count_c_lp_novogene_sept23.txt /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/missingness_filtering/
+```
+[cumulative_miss_plot.pdf](https://github.com/luciamayorf/Variant_calling_and_filtering/files/14422118/cumulative_miss_plot.pdf)
+
+
