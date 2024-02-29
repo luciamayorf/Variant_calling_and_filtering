@@ -82,7 +82,7 @@ Before filtering, we need to identify the repetitive regions in our reference ge
 
 I ran [RepeatModeler](https://www.repeatmasker.org/RepeatModeler/) to identify transposable elements, but that was previously done during the reference genome assembly by CNAG collaborators. These repetitive regions are found in the file /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/reference_genomes/lynx_pardinus_mLynPar1.2/Repeats.4jb.gff3.gz
 
-After testing different options, we decided to mask the genome with a combination of the Repeats.4jb.gff3.gz file of intersperse repeats and the low complexity regions calculated by [Repeatmasker](https://www.repeatmasker.org/):
+After testing different options, we decided to mask the genome with a combination of the Repeats.4jb.gff3.gz file of intersperse repeats and the low complexity regions calculated by [Repeatmasker](https://www.repeatmasker.org/) using the script [repeatmasker_lowcomplex.sh](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/repeatmasker_lowcomplex.sh)
 
 ```bash
 sbatch /home/csic/eye/lmf/scripts/repetitive_regions/repeatmasker_lowcomplex.sh
@@ -190,11 +190,11 @@ The output of the script is a BED file with the excluded windows, and a mean rea
 
 IMPORTANT: the BED file containing the windows with a higher mean read depth to filter out is /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/depth_filtering/**excluded_windows_mean_rd_pop_filter.bed** 
 
+1182 windows will be excluded (out of a total of 242578 windows: ~0.49% of windows excluded), with the mean+0.5*sd cutoff.
 
 #### Applying the filter
 
 We decide to apply the mean+0.5*sd as the read-depth cutoff for the population analysis, using the script [variant_filter_rd.sh](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/variant_filter_rd.sh). 
-1182 windows will be excluded (out of a total of 242578 windows: ~0.49% of windows excluded).
 
 ```bash
 sbatch -c 5 --mem=5GB -t 00:10:00 /home/csic/eye/lmf/scripts/variant_filtering/variant_filter_rd.sh /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20.vcf /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/depth_filtering/excluded_windows_mean_rd_pop_filter.bed 
@@ -214,11 +214,23 @@ After this the read depth filter, we have the following number of SNPs:
 
 ---
 
+#### Genotypes QC
+
+Before applying the missingness, I will apply a fast genotypes QC with vcftools and [plink](https://www.cog-genomics.org/plink/)
+
+I will calculate the allele frequencies, the mean depth per individual and the mean depth per site, the site quality, the proportion of missing data per individual to check the quality of the genotypes and the heterozigosity and inbreeding coefficients.
+
+COMPLETAR Y SUBIR SCRIPT CUANDO ESTE TERMINADO
+
+```bash
+sbatch -c 5 --mem 5GB -t 00:15:00 /home/csic/eye/lmf/scripts/genotypes_qc_vcftools.sh /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.vcf /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/vcf_stats # job ID: 5995880
+```
+
+---
+
 ### 3. Missing genotypes filtering
 
-We will apply a genotype missingness filtering to avoid analyzing variants that are not informative enough and might introduce noise into our results.
-
-First, we will calculate the number of missing genotypes for each SNP in order to draw a distribution of data missingness across the entire genome.
+We will apply a genotype missingness filtering to avoid analyzing variants that are not informative enough and might introduce noise into our results. First, we will calculate the number of missing genotypes for each SNP in order to draw a distribution of data missingness across the entire genome.
 ```{bash}
 bcftools query -f '%CHROM:%POS\t[%GT\t]\n' c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.vcf | awk '{missing=0; for(i=2; i<=NF; i++) if($i=="./.") missing++; print $1, missing}' > ./missingness_filtering/missing_gt_count_c_lp_novogene_sept23.txt
 ```
@@ -227,10 +239,8 @@ Then, we will generate a plot with the % of SNPs that would be included when the
 ```{bash}
 Rscript /home/csic/eye/lmf/scripts/variant_filtering/missingness_plot.R /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/missingness_filtering/missing_gt_count_c_lp_novogene_sept23.txt /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/missingness_filtering/
 ```
-[cumulative_miss_plot.pdf](https://github.com/luciamayorf/Variant_calling_and_filtering/files/14422118/cumulative_miss_plot.pdf)
+
+![cumulative_miss_plot](https://github.com/luciamayorf/Variant_calling_and_filtering/assets/96131721/31ba6f0c-178c-41e3-b071-2cd5e29e68b1)
 
 
-#### Checking genotype missingness per sample
-
-We will check if all the samples have a similar proportion of missing data.
 
