@@ -31,7 +31,7 @@ list_file=${3}
 output_dir=${4}
 
 # Define basename of bam:
-basename_bam=$(basename ${bam} mLynPar1.2_ref_sorted_rg_merged_sorted_rmdup_indelrealigner.bam)
+basename_bam=$(basename ${bam} _mLynPar1.2_ref_sorted_rg_merged_sorted_rmdup_indelrealigner.bam)
 echo "basename_bam: ${basename_bam}"
 
 # Define final sample name:
