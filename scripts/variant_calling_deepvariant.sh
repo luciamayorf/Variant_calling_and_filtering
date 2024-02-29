@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH -e /mnt/lustre/scratch/nlsas/home/csic/eye/lmf/logs/deepvariant/novogene_lp_sept2023/slurm-%j.err
-#SBATCH -o /mnt/lustre/scratch/nlsas/home/csic/eye/lmf/logs/deepvariant/novogene_lp_sept2023/slurm-%j.out
+#SBATCH -e /mnt/lustre/scratch/nlsas/home/csic/eye/lmf/logs/novogene_lp_sept2023/slurm-%j.err
+#SBATCH -o /mnt/lustre/scratch/nlsas/home/csic/eye/lmf/logs/novogene_lp_sept2023/slurm-%j.out
 
 # This script calls variants from a set of bam files to obtain gVCFs with DeepVariant, using the model WGS.
 
