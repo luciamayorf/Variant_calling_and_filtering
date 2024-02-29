@@ -1,6 +1,6 @@
 # Variant_calling_and_filtering
 
-In this repository I will perform the variant calling and filtering of a high coverage dataset of WGS samples of 50 individuals at ~30X.
+In this repository I will perform the variant calling and filtering of a high coverage dataset of WGS samples of 50 individuals at ~30X. All the analyses were performed at CESGA server.
 
 
 ## Variant calling
@@ -18,7 +18,9 @@ for input_bam in $(ls /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome
 done
 ```
 
-We later perform a small quality check with [bcftools stats](https://samtools.github.io/bcftools/bcftools.html#stats) to make sure everything went correctly and there are not weird samples. It doesn't take long to perform the operation, so I can just run it interactively in a loop.
+We later perform a small quality check with [bcftools stats](https://samtools.github.io/bcftools/bcftools.html#stats) to make sure that everything went correctly and that there are not weird samples. It doesn't take long to perform the operation, so we can just run it interactively in a loop.
+
+#### Variant QC
 
 ```bash
 module load samtools
@@ -49,6 +51,27 @@ Now we can run the script [glnexus_script.sh](https://github.com/luciamayorf/Var
 sbatch -c 30 --mem=100G -t 03:00:00 /home/csic/eye/lmf/scripts/glnexus_script.sh /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_gvcfs/novogene_lp_sept2023/novogene_lp_sep2023_gvcfs_list.txt /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref_originalnames.vcf.gz
 ```
 
+I need to take an additional step to change the name of the samples to include their origin population:
+```bash
+module load samtools
+
+bcftools reheader -s <(cut -f2 /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/FASTQ_files/novogene_lp_sept2023/fastq_samples_list.txt | uniq) -o c_lp_all_novogene_sept23_mLynPar1.2_ref.vcf.gz c_lp_all_novogene_sept23_mLynPar1.2_ref_originalnames.vcf.gz
+```
+
+
+#### VCF QC
+
+We also perform a small QC with [bcftools stats](https://samtools.github.io/bcftools/bcftools.html#stats) to make sure that the gVCFs were merged correctly.
+```bash
+module load samtools
+module load multiqc
+
+bcftools index -t c_lp_all_novogene_sept23_mLynPar1.2_ref.vcf.gz
+bcftools stats c_lp_all_novogene_sept23_mLynPar1.2_ref.vcf.gz > c_lp_all_novogene_sept23_mLynPar1.2_ref_stats.txt
+
+multiqc c_lp_all_novogene_sept23_mLynPar1.2_ref_stats.txt
+```
+
 ---
 
 ## Variant filtering
@@ -57,7 +80,38 @@ sbatch -c 30 --mem=100G -t 03:00:00 /home/csic/eye/lmf/scripts/glnexus_script.sh
 
 Before filtering, we need to identify the repetitive regions in our reference genome. 
 
-REDACTAR
+I ran [RepeatModeler](https://www.repeatmasker.org/RepeatModeler/) to identify transposable elements, but that was previously done during the reference genome assembly by CNAG collaborators. These repetitive regions are found in the file /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/reference_genomes/lynx_pardinus_mLynPar1.2/Repeats.4jb.gff3.gz
+
+After testing different options, we decided to mask the genome with a combination of the Repeats.4jb.gff3.gz file of intersperse repeats and the low complexity regions calculated by [Repeatmasker](https://www.repeatmasker.org/):
+
+```bash
+sbatch /home/csic/eye/lmf/scripts/repetitive_regions/repeatmasker_lowcomplex.sh
+```
+
+#### Checking percentage of the genome masked
+
+```{bash}
+# generating the merged GFF
+zcat Repeats.4jb.gff3.gz > repeats_temp.gff
+cat repeats_temp.gff repetitive_regions/low_complex/mLynPar1.2.scaffolds.revcomp.scaffolds.fa.out.gff | sort -k1,1 -k4,4n > repeats_lowcomplexity_mLynPar1.2.scaffolds.revcomp.gff3
+rm repeats_temp.gff
+
+# generating the merged BED:
+awk -F'\t' '{OFS="\t"; print $1, $4-1, $5}' repeats_lowcomplexity_mLynPar1.2.scaffolds.revcomp.gff3 > repeats_lowcomplexity_mLynPar1.2.scaffolds.revcomp.bed
+
+# merging the repetitive from both files in the BED:
+bedtools merge -i repeats_lowcomplexity_mLynPar1.2.scaffolds.revcomp.bed > repeats_lowcomplexity_mLynPar1.2.scaffolds.revcomp_merged.bed
+
+# Calculate the total length of intersected regions:
+awk '{sum+=$3-$2} END {print sum}' repeats_lowcomplexity_mLynPar1.2.scaffolds.revcomp_merged.bed     # = 1042291408
+
+# Calculating the % of the genome that would be masked (taking into account that the total mLynPar1.2genome size is: 2465344228 <-- mLynPar1.2.scaffolds.revcomp.scaffolds.fa.fai)
+1042291408/2465344228
+```
+42,28% of the genome is masked with this library. 
+
+IMPORTANT: the BED file containing the windows with repetitive regions to filter out is /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/reference_genomes/lynx_pardinus_mLynPar1.2/**repeats_lowcomplexity_mLynPar1.2.scaffolds.revcomp_merged.bed**
+
 
 ---
 
@@ -75,6 +129,7 @@ We apply the filters by running the script [variant_filter_1to5.sh](https://gith
 ```bash
 sbatch -t 00:30:00 -c 5 --mem 10GB /home/csic/eye/lmf/scripts/variant_filtering/variant_filter_1to5.sh /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/reference_genomes/lynx_pardinus_mLynPar1.2/mLynPar1.2.scaffolds.revcomp.scaffolds.fa /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref.vcf.gz /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/reference_genomes/lynx_pardinus_mLynPar1.2/repeats_lowcomplexity_mLynPar1.2.scaffolds.revcomp_merged.bed
 ```
+
 These are the number of SNPs removed in each of the filters:
 | Filter       | N of variants  | Filtered variants |
 |:-------------|:--------------:|:-----------------:|
@@ -84,6 +139,7 @@ These are the number of SNPs removed in each of the filters:
 | Filter3      |     1810275    |   6644            |
 | Filter4      |     1663124    |   147151          |
 | Filter5      |     1325874    |   337250          |
+
 
 To obtain the VCFs with the QUAL20 filter (I will probably use this VCF from now on), I run the script [variant_filter_1to5_QUAL20.sh]() <ref.fa> <in.vcf>:
 ```{bash}
@@ -103,7 +159,7 @@ sbatch -t 00:10:00 -c 5 --mem 10GB /home/csic/eye/lmf/scripts/variant_filtering/
 
 ### 2. Mean read depth filtering
 
-After testing how to filter each individual mean read depth, we saw that most windows were shared across individuals, so we decided to apply this filter for the whole population.
+After testing how to filter each individual per chromosome mean read depth (to exclude possible paralogs found in each individual), we saw that most windows were shared across individuals, so we decided to apply this filter for the whole population.
 
 #### Calculating the mean read depth in 10kbp windows
 
@@ -117,7 +173,8 @@ for input_bam in $(ls /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome
 done
 ```
 
-CAUTION: from now on, we will also **exclude the scaffolds**, as they usually present very high read depth values (and very few defined 10kbp windows, as they are quite small). If I ever need to recover this information, I would need to apply a different depth coverage filter for these scaffolds.
+IMPORTANT: from now on, we will also **exclude the scaffolds**, as they usually present very high read depth values (and very few defined 10kbp windows, as they are quite small). If I ever need to recover this information, I would need to apply a different depth coverage filter for these scaffolds (I have not removed the SNPs yet).
+
 
 #### Obtaining the bed of excluded windows
 
@@ -127,13 +184,24 @@ To obtain the bed file with the excluded windows and a plot of the mean read dep
 Rscript /home/csic/eye/lmf/scripts/variant_filtering/mean_rd_filter_population_bed.R /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/depth_filtering/ <(cut -f1,2 -d'_' /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/FASTQ_files/novogene_lp_sept2023/fastq_samples_list.txt | sort -u) /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/depth_filtering/
 ```
 
+The output of the script is a BED file with the excluded windows, and a mean read depth distribution plot with the different cutoff values.
+
+![mean_rd_cutoffs_pop](https://github.com/luciamayorf/Variant_calling_and_filtering/assets/96131721/88d68b5d-6995-4200-96f8-583e662465f1)
+
+IMPORTANT: the BED file containing the windows with a higher mean read depth to filter out is /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/depth_filtering/**excluded_windows_mean_rd_pop_filter.bed** 
+
+
 #### Applying the filter
 
-We decide to apply the mean+0.5*sd as the read-depth cutoff for the population analysis, using the script [variant_filter_rd.sh](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/variant_filter_rd.sh). 1182 windows will be excluded (out of a total of 242578 windows: ~0.49% of windows excluded).
+We decide to apply the mean+0.5*sd as the read-depth cutoff for the population analysis, using the script [variant_filter_rd.sh](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/variant_filter_rd.sh). 
+1182 windows will be excluded (out of a total of 242578 windows: ~0.49% of windows excluded).
+
 ```bash
 sbatch -c 5 --mem=5GB -t 00:10:00 /home/csic/eye/lmf/scripts/variant_filtering/variant_filter_rd.sh /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20.vcf /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/depth_filtering/excluded_windows_mean_rd_pop_filter.bed 
 ```
-Now we have the following number of SNPs:
+
+After this the read depth filter, we have the following number of SNPs:
+
 | Filter       | N of variants  | Filtered variants |
 |:-------------|:--------------:|:-----------------:|
 | No filter    |     4288231    |   0               |
