@@ -218,12 +218,16 @@ After this the read depth filter, we have the following number of SNPs:
 
 Before applying the missingness, I will apply a fast genotypes QC with vcftools and [plink](https://www.cog-genomics.org/plink/)
 
-I will calculate the allele frequencies, the mean depth per individual and the mean depth per site, the site quality, the proportion of missing data per individual to check the quality of the genotypes and the heterozigosity and inbreeding coefficients.
-
-COMPLETAR Y SUBIR SCRIPT CUANDO ESTE TERMINADO
+I will calculate the allele frequencies, the mean depth per individual and the mean depth per site, the site quality, the proportion of missing data per individual and the number of singletons to check the quality of the genotypes and the heterozigosity and inbreeding coefficients.
 
 ```bash
-sbatch -c 5 --mem 5GB -t 00:15:00 /home/csic/eye/lmf/scripts/genotypes_qc_vcftools.sh /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.vcf /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/vcf_stats # job ID: 5995880
+sbatch -c 5 --mem 5GB -t 00:15:00 /home/csic/eye/lmf/scripts/genotypes_QC/genotypes_qc_vcftools.sh /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.vcf /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/vcf_stats # job ID: 5995880
+```
+
+To generate the corresponding plots, we use the script [genotypes_qc_plots.R](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/genotypes_qc_plots.R) <input_vcf_prefix> </path/to/tables/>
+
+```bash
+Rscript /home/csic/eye/lmf/scripts/genotypes_QC/genotypes_qc_plots.R c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/vcf_stats/
 ```
 
 ---
