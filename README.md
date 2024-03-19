@@ -225,7 +225,6 @@ sbatch -c 5 --mem 5GB -t 00:15:00 /home/csic/eye/lmf/scripts/genotypes_QC/genoty
 ```
 
 To generate the corresponding plots, we use the script [genotypes_qc_plots.R](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/genotypes_qc_plots.R) <input_vcf_prefix> </path/to/tables/>
-
 ```bash
 Rscript /home/csic/eye/lmf/scripts/genotypes_QC/genotypes_qc_plots.R c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/vcf_stats/
 ```
@@ -235,6 +234,7 @@ Rscript /home/csic/eye/lmf/scripts/genotypes_QC/genotypes_qc_plots.R c_lp_all_no
 ### 3. Missing genotypes filtering
 
 We will apply a genotype missingness filtering to avoid analyzing variants that are not informative enough and might introduce noise into our results. First, we will calculate the number of missing genotypes for each SNP in order to draw a distribution of data missingness across the entire genome.
+
 ```{bash}
 bcftools query -f '%CHROM:%POS\t[%GT\t]\n' c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.vcf | awk '{missing=0; for(i=2; i<=NF; i++) if($i=="./.") missing++; print $1, missing}' > ./missingness_filtering/missing_gt_count_c_lp_novogene_sept23.txt
 ```
@@ -246,5 +246,21 @@ Rscript /home/csic/eye/lmf/scripts/variant_filtering/missingness_plot.R /mnt/lus
 
 ![cumulative_miss_plot](https://github.com/luciamayorf/Variant_calling_and_filtering/assets/96131721/31ba6f0c-178c-41e3-b071-2cd5e29e68b1)
 
+#### Applying the filter
 
+For now, we decide to apply a very lax filter: we will filter out SNPs missing in more than 70% of the individuals. Later, we can apply a more strict filter if needed. I use the script [variant_filter_miss.sh](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/variant_filter_miss.sh)
 
+```bash
+sbatch -c 5 --mem=5GB -t 00:10:00 /home/csic/eye/lmf/scripts/variant_filtering/variant_filter_miss.sh /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.vcf
+```
+
+| Filter       | N of variants  | Filtered variants |
+|:-------------|:--------------:|:-----------------:|
+| No filter    |     4288231    |   0               |
+| Filter1      |     2062793    |   2225438         |
+| Filter2      |     1816919    |   245874          |
+| Filter3      |     1810275    |   6644            |
+| Filter4      |     1721036    |   89239           |
+| Filter5      |     1354440    |   366596          |
+| Mean_rd      |     1327386    |   27054           |
+| Miss         |     1327251    |   135             |
