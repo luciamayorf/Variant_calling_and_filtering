@@ -121,7 +121,7 @@ We are going to apply the following filters to the VCF file:
 
 1.  Filter 1: removing variants in **repetitive/low complexity** regions.
 2.  Filter 2: removing **non-biallic** sites.
-3.  Filter 3: removing **invariant**sites (they would be singletons of the reference genome).
+3.  Filter 3: removing **invariant** sites (they would be singletons of the reference genome).
 4.  Filter 4: removing variants with a **low quality score**. I think QUAL >= 20 should be enough (99% confident that the genotype is real)
 5.  Filter 5: removing **indels**.
 
