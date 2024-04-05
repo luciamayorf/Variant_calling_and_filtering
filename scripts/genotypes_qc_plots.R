@@ -117,6 +117,6 @@ names(pca)[2:ncol(pca)] <- paste0("PC", 1:(ncol(pca)-1))
   ggsave(paste0(input_folder, input, "_eigenval_plot.pdf"), eigenval_plot)
   ggsave(paste0(input_folder, input, "_pca_plot.pdf"), eigenvec_plot)
   
-  # indicate individuals name when clicking on each point
+  # indicate individuals name when clicking on each point (to be run in Rstudio)
   # pca_plotly <- ggplotly(eigenvec_plot, tooltip = c("ind"))
   # htmlwidgets::saveWidget(pca_plotly, file = paste0(input_folder, input, "_pca_plot.html"))
