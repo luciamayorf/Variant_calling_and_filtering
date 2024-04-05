@@ -1,4 +1,6 @@
 #!/bin/bash
+#SBATCH --output=/mnt/lustre/scratch/nlsas/home/csic/eye/lmf/logs/variantqc/slurm-%j.out
+#SBATCH --error=/mnt/lustre/scratch/nlsas/home/csic/eye/lmf/logs/variantqc/slurm-%j.err
 
 # This script calculates different statitics for a VCF file with vcftools and plink.
 
