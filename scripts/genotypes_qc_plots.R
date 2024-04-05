@@ -1,6 +1,6 @@
 # This R script generates a plots of the different statistics obtained with vcftools and plink.
 # They serve as a diagnostic tool to evaluate the quality of the genotypes and the filtering steps.
-# The input of the script is the prefix con the vcf analyzed with the script genotypes_qc_vcftools.sh
+# The input of the script is the prefix of the vcf analyzed with the script genotypes_qc_vcftools.sh
 
 # Usage: Rscript genotypes_qc_plots.R <input_vcf_prefix> </path/to/input/tables/>
 
