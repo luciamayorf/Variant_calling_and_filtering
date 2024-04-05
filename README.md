@@ -216,7 +216,7 @@ After this the read depth filter, we have the following number of SNPs:
 
 #### Genotypes QC
 
-Before applying the missingness, I will apply a fast genotypes QC with vcftools and [plink](https://www.cog-genomics.org/plink/)
+Before applying the missingness, I will apply a fast genotypes QC with vcftools and [plink](https://www.cog-genomics.org/plink/).
 
 The script [genotypes_qc_vcftools.sh](https://github.com/luciamayorf/Variant_calling_and_filtering) calculates the allele frequencies, the mean depth per individual and the mean depth per site, the site quality, the proportion of missing data per individual and the number of singletons to check the quality of the genotypes and the heterozigosity and inbreeding coefficients. It also performs a PCA. 
 
