@@ -218,7 +218,7 @@ After this the read depth filter, we have the following number of SNPs:
 
 Before applying the missingness, I will apply a fast genotypes QC with vcftools and [plink](https://www.cog-genomics.org/plink/)
 
-With the script [genotypes_qc_vcftools.sh](https://github.com/luciamayorf/Variant_calling_and_filtering) calculate the allele frequencies, the mean depth per individual and the mean depth per site, the site quality, the proportion of missing data per individual and the number of singletons to check the quality of the genotypes and the heterozigosity and inbreeding coefficients. It also performs a PCA. 
+The script [genotypes_qc_vcftools.sh](https://github.com/luciamayorf/Variant_calling_and_filtering) calculates the allele frequencies, the mean depth per individual and the mean depth per site, the site quality, the proportion of missing data per individual and the number of singletons to check the quality of the genotypes and the heterozigosity and inbreeding coefficients. It also performs a PCA. 
 
 ```bash
 sbatch --mem 5GB -t 00:15:00 /home/csic/eye/lmf/scripts/genotypes_QC/genotypes_qc_vcftools.sh /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.vcf /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/vcf_stats # job ID: 5995880
