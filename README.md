@@ -141,7 +141,7 @@ These are the number of SNPs removed in each of the filters:
 | Filter5      |     1325874    |   337250          |
 
 
-To obtain the VCFs with the QUAL20 filter (I will probably use this VCF from now on), I run the script [variant_filter_1to5_QUAL20.sh]() <ref.fa> <in.vcf>:
+To obtain the VCFs with the QUAL20 filter (I will probably use this VCF from now on), I run the script [variant_filter_1to5_QUAL20.sh](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/variant_filter_1to5_QUAL20.sh) <reference_fasta> <input_vcf>:
 ```{bash}
 sbatch -t 00:10:00 --mem 10GB /home/csic/eye/lmf/scripts/variant_filtering/variant_filter_1to5_QUAL20.sh /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/reference_genomes/lynx_pardinus_mLynPar1.2/mLynPar1.2.scaffolds.revcomp.scaffolds.fa /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref.vcf.gz #job ID: 5990353
 ```
@@ -218,7 +218,7 @@ After this the read depth filter, we have the following number of SNPs:
 
 Before applying the missingness, I will apply a fast genotypes QC with vcftools and [plink](https://www.cog-genomics.org/plink/).
 
-The script [genotypes_qc_vcftools.sh](https://github.com/luciamayorf/Variant_calling_and_filtering) calculates the allele frequencies, the mean depth per individual and the mean depth per site, the site quality, the proportion of missing data per individual and the number of singletons to check the quality of the genotypes and the heterozigosity and inbreeding coefficients. It also performs a PCA. 
+The script [genotypes_qc_vcftools.sh](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/genotypes_qc_vcftools.sh) calculates the allele frequencies, the mean depth per individual and the mean depth per site, the site quality, the proportion of missing data per individual and the number of singletons to check the quality of the genotypes and the heterozigosity and inbreeding coefficients. It also performs a PCA. 
 
 ```bash
 sbatch --mem 5GB -t 00:15:00 /home/csic/eye/lmf/scripts/genotypes_QC/genotypes_qc_vcftools.sh /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.vcf /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/vcf_stats # job ID: 5995880
