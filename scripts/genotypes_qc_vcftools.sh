@@ -47,7 +47,14 @@ vcftools --vcf ${input_vcf} --singletons --out ${output_dir}/${base_name}
 # calculate number of singletons per individual
 cut -f5 ${output_dir}/${base_name}.singletons | sort -r | uniq -c | sed 's/ \+ /\t/g' | cut -f2 | sed 's/ /\t/' > ${output_dir}/${base_name}.singletons_per_ind
 
+# prune linked SNPs for the PCA
+plink --vcf ${input_vcf} --double-id --allow-extra-chr \
+--set-missing-var-ids @:# \
+--vcf-half-call m \
+--indep-pairwise 50 10 0.2 --out ${output_dir}/${base_name}
+
 # perform a PCA (setting half-calls to missing)
-plink --vcf ${input_vcf} --double-id --allow-extra-chr --set-missing-var-ids @:# --vcf-half-call m --pca --out ${output_dir}/${base_name}
+plink --vcf ${input_vcf} --double-id --allow-extra-chr --set-missing-var-ids @:# \
+--vcf-half-call m --pca --extract ${output_dir}/${base_name}.prune.in --out ${output_dir}/${base_name}
 
 
