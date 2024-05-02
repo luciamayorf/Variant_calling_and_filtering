@@ -9,6 +9,13 @@
 # input vcf
 input_vcf=${1}
 
+# Check if the input file is a gzipped VCF file and unzip it if it is
+if [[ ${input_vcf: -7} == ".vcf.gz" ]]; then
+    # Uncompress the VCF file
+    gunzip ${input_vcf}
+    input_vcf=${input_vcf%.gz}
+fi
+
 # base name of the input vcf
 base_name=$(basename ${input_vcf} .vcf)
 
