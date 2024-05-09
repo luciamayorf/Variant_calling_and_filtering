@@ -264,3 +264,9 @@ sbatch -c 5 --mem=5GB -t 00:10:00 /home/csic/eye/lmf/scripts/variant_filtering/v
 | Filter5      |     1354440    |   366596          |
 | Mean_rd      |     1327386    |   27054           |
 | Miss         |     1327251    |   135             |
+
+---
+
+# Functional annotation
+
+We want to functionally annotate the variants to asign them a degree of deleteriousness.
