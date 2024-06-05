@@ -15,6 +15,9 @@ input <- commandArgs(trailingOnly = TRUE)[1]
 # output folder
 output_folder <- commandArgs(trailingOnly = TRUE)[2]
 
+# number of samples
+n_samples <- commandArgs(trailingOnly = TRUE)[3]
+
 # load table
 miss_table <- read_delim(input, progress = T, col_names = FALSE, delim = " ")
 
@@ -32,7 +35,7 @@ miss_table$Freq <- (miss_table$n_snp)/total_snps
 miss_table$Freq_cum <- cumsum(miss_table$Freq)
 
 # calculate proportion of missing data 
-miss_table$mis_prop <- (miss_table$n_missing)/50
+miss_table$mis_prop <- (miss_table$n_missing)/as.numeric(n_samples)
 
 missing_plot <- ggplot(miss_table, aes(x = mis_prop, y = Freq_cum)) +
   geom_line(alpha=0.5, color="blue", size =1.5) +
