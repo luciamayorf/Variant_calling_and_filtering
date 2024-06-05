@@ -239,9 +239,9 @@ We will apply a genotype missingness filtering to avoid analyzing variants that 
 bcftools query -f '%CHROM:%POS\t[%GT\t]\n' c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.vcf | awk '{missing=0; for(i=2; i<=NF; i++) if($i=="./.") missing++; print $1, missing}' > ./missingness_filtering/missing_gt_count_c_lp_novogene_sept23.txt
 ```
 
-Then, we will generate a plot with the % of SNPs that would be included when the proportion of missing data allowed is increased, using the script [missingness_plot.R](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/missingness_plot.R) <input_data> <output_directory>
+Then, we will generate a plot with the % of SNPs that would be included when the proportion of missing data allowed is increased, using the script [missingness_plot.R](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/missingness_plot.R) <input_data> <output_directory> <number_of samples>
 ```{bash}
-Rscript /home/csic/eye/lmf/scripts/variant_filtering/missingness_plot.R /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/missingness_filtering/missing_gt_count_c_lp_novogene_sept23.txt /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/missingness_filtering/
+Rscript /home/csic/eye/lmf/scripts/variant_filtering/missingness_plot.R /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/missingness_filtering/missing_gt_count_c_lp_novogene_sept23.txt /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/missingness_filtering/ 50
 ```
 
 ![cumulative_miss_plot](https://github.com/luciamayorf/Variant_calling_and_filtering/assets/96131721/31ba6f0c-178c-41e3-b071-2cd5e29e68b1)
