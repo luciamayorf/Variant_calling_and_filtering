@@ -270,3 +270,13 @@ sbatch -c 5 --mem=5GB -t 00:10:00 /home/csic/eye/lmf/scripts/variant_filtering/v
 # Functional annotation
 
 We want to functionally annotate the variants to asign them a degree of deleteriousness. We first run SnpEff to make sure there's no contamination. For that, we first need to [build the reference genome database](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/functional_annotation/README.md).
+
+---
+
+# Polarization
+
+To polarize the SNPs (defined ancestral vs. derived alleles, we followed the parsimony criteria (as Dani and Lorena) using three species as outgroups: tiger-cat-lynx rufus. For more details, see [Polarization]().
+
+
+
+
