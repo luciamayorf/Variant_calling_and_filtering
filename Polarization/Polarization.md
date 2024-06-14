@@ -25,7 +25,7 @@ Then I run a FastQC and fastp for both fastq files, as in [Data_preprocessing_al
 
 ## Alignment
 
-I aligned cat and tiger data in the EBD genomics server and rufus data in CESGA ft3, running scripts [fc_SRA_alignment.sh](), [pt_SRA_alignment.sh]() and [lc1_mLynPar1.2_ref_alignment.sh]().
+I aligned cat and tiger data to the new Iberian lynx reference genome in the EBD genomics server and rufus data in CESGA ft3, running scripts [fc_SRA_alignment.sh](), [pt_SRA_alignment.sh]() and [lc1_mLynPar1.2_ref_alignment.sh]().
 
 
 
