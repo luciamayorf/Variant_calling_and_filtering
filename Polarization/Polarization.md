@@ -228,5 +228,70 @@ return vb.make();' -o c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.
 
 ### Detect ancestral state allele incompatibilities
 
+Later on, I noticed that there were some SNPs whose neither of the two alleles (reference or alternative) matched the ancentral state, and they were not changed during the VCF polarization.
 
+```bash
+# Adding the ancestral state column to remove non-polarizable variants
+awk '{                                       
+split($0,a,":");
+split(a[1],b,"=");
+split(b[2],c,"");
+if (c[1]==c[2] && c[1]==c[3]) printf ("%s\t%s\t%s\t%s\t%s\t%s\n", $1,$2,$3,$4,c[3],c[4]); # all equal
+else if (c[1]==c[2] && c[1]!=c[3]) printf ("%s\t%s\t%s\t%s\t%s\t%s\n", $1,$2,$3,$4,"N",c[4]); #fc pm vs lr N
+else if (c[1]==c[3] && c[1]!=c[2]) printf ("%s\t%s\t%s\t%s\t%s\t%s\n", $1,$2,$3,$4,c[3],c[4]); #fc lr* vs pm
+else if (c[2]==c[3] && c[1]!=c[3]) printf ("%s\t%s\t%s\t%s\t%s\t%s\n", $1,$2,$3,$4,c[3],c[4]); #pm lr * vs fc
 
+else if ((c[1]=="N") && c[2]==c[3]) printf ("%s\t%s\t%s\t%s\t%s\t%s\n", $1,$2,$3,$4,c[3],c[4]); # fc lr * all equal
+else if ((c[1]=="N") && c[2]!=c[3]) printf ("%s\t%s\t%s\t%s\t%s\t%s\n", $1,$2,$3,$4,"N",c[4]); # lr vs fc N
+
+else printf ("%s\t%s\t%s\t%s\t%s\t%s\n", $1,$2,$3,$4,"N",c[4]); #others null
+}' temp_incompatibities.bed | awk '$5!="N" {print $0}' | cut -f1-4  > temp_incompatibities_polarizable.bed
+
+# Compare both of the lp alleles with the other species alleles to see if there's any incompatibility
+awk '{                                       
+split($0,a,":");
+split(a[1],b,"=");
+split(b[2],c,"");
+if (c[4]==c[1] || c[4]==c[2] || c[4]==c[3]) printf ("%s\t%s\t%s\t%s\t%s\n", $1,$2,$3,$4,"ok_ref"); # ref allele matches any of the other species alleles
+else if (c[5]==c[1] || c[5]==c[2] || c[5]==c[3]) printf ("%s\t%s\t%s\t%s\t%\n", $1,$2,$3,$4,"ok_alt"); # alt allele matches any of the other species alleles
+else printf ("%s\t%s\t%s\t%s\t%s\t%s\t%s%s\n", $1,$2,$3,$4,"triallelic","N",c[4],c[5]); # none of the alleles matches any of the other species alleles
+}' temp_incompatibities_polarizable.bed | grep "triallelic" > allele_incompatibities_polarization.bed
+rm temp*.bed 
+```
+There are 3007 SNPs whose none of two alleles match the ancestral state. Those variants are already included in the inconsistencies file, but they have the wrong ancestral state (should be an N, as that allele is not found in the reference). To change the ancestral state for an N in that file:
+
+```bash
+awk 'NR==FNR{a[$1,$2,$3]=$0;next}{if(($1,$2,$3) in a){print $1"\t"$2"\t"$3"\t"$4"\t""N""\t"$6}else{print $0}}' allele_incompatibities_polarization.bed inconsistent_ancestral_state_fc_pm_lr_lp_variants.bed > ancestral_state_changes_fc_pm_lr_lp_variants.bed
+```
+
+I also need to remove those variants from the polarized VCF
+```bash
+bedtools intersect -a /GRUPOS/grupolince/mLynPar1.2_ref_vcfs/c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.miss_bigChr_polarizable_aafilled_polarized.vcf.gz -b allele_incompatibities_polarization.bed -v -header > /GRUPOS/grupolince/mLynPar1.2_ref_vcfs/c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.miss_bigChr_polarized.vcf
+bgzip /GRUPOS/grupolince/mLynPar1.2_ref_vcfs/c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.miss_bigChr_polarized.vcf
+```
+
+## Ancestral reference fasta generation
+
+[GATK FastaAlternateReferenceMaker](https://gatk.broadinstitute.org/hc/en-us/articles/360037594571-FastaAlternateReferenceMaker) takes a VCF and the reference genome as inputs and replaces the reference variant for the alternative one for the positions in the VCF.
+
+For that, I first need to generate a "pseudovcf" (it will only have useful information about the alleles and the SNP position) file from the BED file containing the positions that need to be changed (the alternative allele column containing the ancestral state).
+
+```bash
+# Generate the VCF
+awk 'BEGIN {printf("##fileformat=VCFv4.2\n##INFO=<ID=END,Number=1,Type=Integer>\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n");} {printf("%s\t%s\t.\t%s\t%s\t.\t.\tEND=%d\n",$1,int($2)+1,$6,$5,$3);}' ancestral_state_changes_fc_pm_lr_lp_variants.bed > ancestral_state_changes_fc_pm_lr_lp_variants.vcf
+
+# Generate the ancestral fasta
+java -jar /opt/GATK/GenomeAnalysisTK.jar -T FastaAlternateReferenceMaker \
+-R /GRUPOS/grupolince/reference_genomes/lynx_pardinus_mLynPar1.2/mLynPar1.2.scaffolds.revcomp.scaffolds.fa \
+-V ancestral_state_changes_fc_pm_lr_lp_variants.vcf \
+-o test_ancestral_mLynPar1.2.scaffolds.revcomp.scaffolds.fa
+
+# Check that everything went well
+rm kaka.borrar
+seqkit fx2tab test_ancestral_mLynPar1.2.scaffolds.revcomp.scaffolds.fa > test_ancestral_mLynPar1.2.scaffolds.revcomp.scaffolds.tab
+while read -r SCAFFOLD START STOP SYNTENY ANCESTRAL PARDINUS; do
+  OLD=$(grep "$SCAFFOLD" mLynPar1.2.scaffolds.revcomp.scaffolds.tab | awk '{printf ("%s\n", $2)}' | cut -c$STOP)
+  NEW=$(grep "$SCAFFOLD" test_ancestral_mLynPar1.2.scaffolds.revcomp.scaffolds.tab | awk '{printf ("%s\n", $3)}' | cut -c$STOP)
+  echo -e "$SCAFFOLD\t$STOP\t$PARDINUS\t$OLD\t$ANCESTRAL\t$NEW" >> kaka.borrar
+done < ancestral_state_changes_fc_pm_lr_lp_variants.bed
+```
