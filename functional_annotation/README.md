@@ -14,3 +14,58 @@ I need to add these lines at the end of the config file:
 # Lynx_pardinus, version mLynPar1.2
 LYPA1_2A.genome : Iberian lynx        # from now on, LYPA1_2A is the code for the Lynx pardinus reference genome (in snpEff)
 ```
+
+### Longest isoform selection
+
+To build the database, SnpEff needs all the files to be in the same folder (named after the reference genome code in the configuration file). It needs the following files: the reference genome FASTA, the GFF file, and a coding and protein sequences fasta).
+
+To get one effect per variant, we need to select one transcript and one protein per gene. We will base out decision on the longest peptide that it's transcribed (and its correspondent transcript).
+
+We have the FASTA with the protein sequence of the longest peptide available (provided by CNAG with the new reference genomes). We will start with this file to build the longest transcript file, after which we will generate the new gff3 that contains only the longest isoform.
+
+```bash
+cd /mnt/netapp2/Store_csebdjgl/reference_genomes/lynx_pardinus_mLynPar1.2
+# For the transcripts file
+for i in $(zgrep ">" LYPA1_2A.longestpeptide.fa.gz | sed '/^>/ s/\(.*\)P/\1T/;s/>//'); do
+    awk -v id="${i}" -v RS='>' -v ORS='' '$1 == id {print ">"$0}' LYPA1_2A.transcripts.fa
+done > snpeff_annotation/LYPA1_2A.transcripts_longest_CESGA.fa
+
+# To check that they match:
+diff <(zgrep ">" LYPA1_2A.longestpeptide.fa.gz | sed '/^>/ s/\(.*\)P/\1T/' | sed 's/>//' | sort) <(grep ">" snpeff_annotation/LYPA1_2A.transcripts_longest_CESGA.fa | sed 's/>//' | sort)
+```
+
+To generate the new GFF3 file, I use the custom script [gff_longest_generation](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/functional_annotation/gff_longest_generation.sh):
+```bash
+sbatch -t 04:00:00 --mem=500MB /home/csic/eye/lmf/scripts/functional_annotation/snpeff/gff_longest_generation.sh
+```
+
+Now that we have all the files ready, we move them to the same folder and rename them so that SnpEff can build the database
+```bash
+# create a directory inside the software's dependencies whose name matches the code
+mkdir /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A
+
+# copy the reference genome FASTA to the new folder and rename it following the manuals instructions
+cp /mnt/netapp2/Store_csebdjgl/reference_genomes/lynx_pardinus_mLynPar1.2/mLynPar1.2.scaffolds.revcomp.scaffolds.fa /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/
+mv mLynPar1.2.scaffolds.revcomp.scaffolds.fa sequences.fa
+
+# copy and rename the gff3 file
+cp /mnt/netapp2/Store_csebdjgl/reference_genomes/lynx_pardinus_mLynPar1.2/snpeff_annotation/LYPA1_2A.FA_longestisoform_CESGA.gff3 /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/
+mv /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/LYPA1_2A.FA_longestisoform_CESGA.gff3 /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/genes.gff
+
+# copy and rename the transcripts file 
+cp /mnt/netapp2/Store_csebdjgl/reference_genomes/lynx_pardinus_mLynPar1.2/snpeff_annotation/LYPA1_2A.transcripts_longest_CESGA.fa /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/
+mv /mnt/netapp2/Store_csebdjgl/reference_genomes/lynx_pardinus_mLynPar1.2/snpeff_annotation/LYPA1_2A.transcripts_longest_CESGA.fa /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/cds.fa
+
+# move and rename the protein file (the code for the protein needs to be the same as the code for the transcript, so we need to change the last "P" for a "T").
+zcat LYPA1_2A.longestpeptide.fa.gz | sed '/^>/ s/\(.*\)P/\1T/' > /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/protein.fa
+```
+
+Now we can build the database with the script [snpeff_build_database.sh](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/functional_annotation/snpeff_build_database.sh):
+```{bash}
+sbatch -t 00:05:00 --mem 10G /home/csic/eye/lmf/scripts/functional_annotation/snpeff/snpeff_build_database.sh     # job ID: 7509429
+```
+
+CDS percentage error: 0.27%. Protein percentage error: 4.64%.
+
+
+OJO, AHORA ME ENTRAN DUDAS DE SÍ, A LA HORA DE CONSTRUIR ESTA BASE DE DATOS, AL USAR EL GENOMA DE REFERENCIA ANCESTRAL NO CAMBIARÍA EL HECHO DE TENER QUE USAR TAMBIÉN EL ESTADO ANCESTRAL EN LOS TRANSCRITOS Y EN EL ARCHIVO DE LA PROTEÍNA MÁS LARGA
