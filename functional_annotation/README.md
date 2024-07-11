@@ -67,5 +67,11 @@ sbatch -t 00:05:00 --mem 10G /home/csic/eye/lmf/scripts/functional_annotation/sn
 
 CDS percentage error: 0.27%. Protein percentage error: 4.64%.
 
+## Running SnpEff
 
-OJO, AHORA ME ENTRAN DUDAS DE SÍ, A LA HORA DE CONSTRUIR ESTA BASE DE DATOS, AL USAR EL GENOMA DE REFERENCIA ANCESTRAL NO CAMBIARÍA EL HECHO DE TENER QUE USAR TAMBIÉN EL ESTADO ANCESTRAL EN LOS TRANSCRITOS Y EN EL ARCHIVO DE LA PROTEÍNA MÁS LARGA
+Dani runs SnpEff defining intervals in a BED file. This gives the variants intersecting those regions the annotation provided by the BED file. They have a very detailed annotation file, containing intergenic regions (and promoters, upstream/downstream, UTRs, etc.), but we don't have that information (only genes, transcripts, cds and exons).
+
+```{bash}
+java -Xmx16g -jar $EBROOTSNPEFF/snpEff.jar LYPA1_2A -v -c /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/snpEff.config -s "/mnt/netapp2/Store_csebdjgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/functional_annotation/snpeff/snpeff_c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.miss.html" -csvStats "/mnt/netapp2/Store_csebdjgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/functional_annotation/snpeff/snpeff_c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.miss.csv" /mnt/netapp2/Store_csebdjgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.miss.vcf > /mnt/netapp2/Store_csebdjgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/functional_annotation/snpeff/c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.miss_annotated.vcf.gz
+```
+
