@@ -2,7 +2,7 @@
 # It also outputs a summary table with the number of SNPs that are missing in each number of individuals.
 # The input file is a table with the number of SNPs with each frequency of missing data generated with bcftools query. 
 
-# Usage: Rscript missingness_plot.R <input_data> </path/to/output/folder/>
+# Usage: Rscript missingness_plot.R <input_data> </path/to/output/folder/> <n_samples>
 
 # load libraries
 library(tidyverse)
