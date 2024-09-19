@@ -265,6 +265,8 @@ sbatch -c 5 --mem=5GB -t 00:10:00 /home/csic/eye/lmf/scripts/variant_filtering/v
 | Mean_rd      |     1327386    |   27054           |
 | Miss         |     1327251    |   135             |
 
+
+NOTE: The final filter I applied for the reference panel for imputation is much more strict (missing in 1 individual maximum). See Rmd.
 ---
 
 # Functional annotation
