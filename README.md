@@ -1,7 +1,6 @@
-# Variant_calling_and_filtering
+# Variant calling and filtering
 
 In this repository I will perform the variant calling and filtering of a high coverage dataset of WGS samples of 50 individuals at ~30X. All the analyses were performed at CESGA server.
-
 
 ## Variant calling
 
@@ -17,7 +16,6 @@ for input_bam in $(ls /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome
     echo "${job_id} ${input_bam}" >> /mnt/lustre/scratch/nlsas/home/csic/eye/lmf/logs/deepvariant/job_ids_deepvariant_novogene_lp_sept2023.txt
 done
 ```
-
 We later perform a small quality check with [bcftools stats](https://samtools.github.io/bcftools/bcftools.html#stats) to make sure that everything went correctly and that there are not weird samples. It doesn't take long to perform the operation, so we can just run it interactively in a loop.
 
 #### Variant QC
@@ -57,7 +55,6 @@ module load samtools
 
 bcftools reheader -s <(cut -f2 /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/FASTQ_files/novogene_lp_sept2023/fastq_samples_list.txt | uniq) -o c_lp_all_novogene_sept23_mLynPar1.2_ref.vcf.gz c_lp_all_novogene_sept23_mLynPar1.2_ref_originalnames.vcf.gz
 ```
-
 
 #### VCF QC
 
@@ -108,6 +105,7 @@ awk '{sum+=$3-$2} END {print sum}' repeats_lowcomplexity_mLynPar1.2.scaffolds.re
 # Calculating the % of the genome that would be masked (taking into account that the total mLynPar1.2genome size is: 2465344228 <-- mLynPar1.2.scaffolds.revcomp.scaffolds.fa.fai)
 1042291408/2465344228
 ```
+
 42,28% of the genome is masked with this library. 
 
 IMPORTANT: the BED file containing the windows with repetitive regions to filter out is /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/reference_genomes/lynx_pardinus_mLynPar1.2/**repeats_lowcomplexity_mLynPar1.2.scaffolds.revcomp_merged.bed**
@@ -126,6 +124,7 @@ We are going to apply the following filters to the VCF file:
 5.  Filter 5: removing **indels**.
 
 We apply the filters by running the script [variant_filter_1to5.sh](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/scripts/variant_filter_1to5.sh) <ref.fa> <in.vcf> <masked_regions.bed>
+
 ```bash
 sbatch -t 00:30:00 --mem 10GB /home/csic/eye/lmf/scripts/variant_filtering/variant_filter_1to5.sh /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/reference_genomes/lynx_pardinus_mLynPar1.2/mLynPar1.2.scaffolds.revcomp.scaffolds.fa /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref.vcf.gz /mnt/lustre/hsm/nlsas/notape/home/csic/ebd/jgl/reference_genomes/lynx_pardinus_mLynPar1.2/repeats_lowcomplexity_mLynPar1.2.scaffolds.revcomp_merged.bed
 ```
