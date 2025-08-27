@@ -1,8 +1,7 @@
 # 0. Building SnpEff database
 
-The Iberian lynx reference genome is not found in the SnpEff database. We will build the database using the reference genome and the annotation file. 
+The Iberian lynx new version of the reference genome (mLynPar1.2) is not found in the SnpEff database. We will build the database using the reference genome and the annotation file. 
 For that, we first need to modify the snpEff.config file to include the new database. As I don't have the permissions to write the file, I need to create a copy in my $STORE.
-
 
 ```bash
 module load snpeff/5.0
@@ -24,40 +23,56 @@ To get one effect per variant, we need to select one transcript and one protein 
 We have the FASTA with the protein sequence of the longest peptide available (provided by CNAG with the new reference genomes). We will start with this file to build the longest transcript file, after which we will generate the new gff3 that contains only the longest isoform.
 
 ```bash
-cd /mnt/netapp2/Store_csebdjgl/reference_genomes/lynx_pardinus_mLynPar1.2
+cd /mnt/netapp2/Store_csebdjgl/reference_genomes/lynx_pardinus_mLynPar1.2/snpeff_annotation/new_version_Paulina_june2025
+
+# Protein file
+less -S ../../LYPA1_2A.longestpeptide.fa.gz
+zgrep ">" ../../LYPA1_2A.longestpeptide.fa.gz | wc -l
+
 # For the transcripts file
-for i in $(zgrep ">" LYPA1_2A.longestpeptide.fa.gz | sed '/^>/ s/\(.*\)P/\1T/;s/>//'); do
-    awk -v id="${i}" -v RS='>' -v ORS='' '$1 == id {print ">"$0}' LYPA1_2A.transcripts.fa
-done > snpeff_annotation/LYPA1_2A.transcripts_longest_CESGA.fa
+cp ../../LYPA1_2A.cds.fa.gz . 
+bgunzip LYPA1_2A.FA.cds.fa
+for i in $(zgrep ">" ../../LYPA1_2A.longestpeptide.fa.gz| sed 's/>//'); do
+    awk -v id="${i}" -v RS='>' -v ORS='' '$1 == id {print ">"$0}' LYPA1_2A.cds.fa
+done > LYPA1_2A.longest.cds.fa                                                     
+sed -i 's/ partial_cds//' LYPA1_2A.longest.cds.fa
 
 # To check that they match:
-diff <(zgrep ">" LYPA1_2A.longestpeptide.fa.gz | sed '/^>/ s/\(.*\)P/\1T/' | sed 's/>//' | sort) <(grep ">" snpeff_annotation/LYPA1_2A.transcripts_longest_CESGA.fa | sed 's/>//' | sort)
+diff <(zgrep ">" ../../LYPA1_2A.longestpeptide.fa.gz | sort) <(grep ">" LYPA1_2A.longest.cds.fa | sort)
 ```
 
 To generate the new GFF3 file, I use the custom script [gff_longest_generation](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/functional_annotation/gff_longest_generation.sh):
 ```bash
-sbatch -t 04:00:00 --mem=500MB /home/csic/eye/lmf/scripts/functional_annotation/snpeff/gff_longest_generation.sh
+# Generate the single gff3:
+sbatch -t 04:00:00 -c 1 --mem=500M /home/csic/eye/lmf/scripts/functional_annotation/gff_longest_single_transcript.sh # job ID: 13672539
+
+# Checking everything match:
+awk '$3 == "transcript"' LYPA1_2A.longest.isoform_single_transcript.gff3 | wc -l # 23558 
+awk '$3 == "gene"' LYPA1_2A.longest.isoform_single_transcript.gff3 | wc -l # 23558 
+awk '$3 == "gene"' LYPA1_2A.longest.isoform_single_transcript.gff3 | cut -f9 | sort | uniq | wc -l # 23558 
 ```
 
 Now that we have all the files ready, we move them to the same folder and rename them so that SnpEff can build the database
 ```bash
 # create a directory inside the software's dependencies whose name matches the code
-mkdir /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A
+mkdir -p /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A
 
 # copy the reference genome FASTA to the new folder and rename it following the manuals instructions
 cp /mnt/netapp2/Store_csebdjgl/reference_genomes/lynx_pardinus_mLynPar1.2/mLynPar1.2.scaffolds.revcomp.scaffolds.fa /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/
 mv mLynPar1.2.scaffolds.revcomp.scaffolds.fa sequences.fa
 
 # copy and rename the gff3 file
-cp /mnt/netapp2/Store_csebdjgl/reference_genomes/lynx_pardinus_mLynPar1.2/snpeff_annotation/LYPA1_2A.FA_longestisoform_CESGA.gff3 /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/
-mv /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/LYPA1_2A.FA_longestisoform_CESGA.gff3 /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/genes.gff
+cp /mnt/netapp2/Store_csebdjgl/reference_genomes/lynx_pardinus_mLynPar1.2/snpeff_annotation/new_version_Paulina_june2025/LYPA1_2A.longest.isoform_single_transcript.gff3 /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/
+mv /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/LYPA1_2A.longest.isoform_single_transcript.gff3 /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/genes.gff
 
 # copy and rename the transcripts file 
-cp /mnt/netapp2/Store_csebdjgl/reference_genomes/lynx_pardinus_mLynPar1.2/snpeff_annotation/LYPA1_2A.transcripts_longest_CESGA.fa /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/
-mv /mnt/netapp2/Store_csebdjgl/reference_genomes/lynx_pardinus_mLynPar1.2/snpeff_annotation/LYPA1_2A.transcripts_longest_CESGA.fa /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/cds.fa
+cp /mnt/netapp2/Store_csebdjgl/reference_genomes/lynx_pardinus_mLynPar1.2/snpeff_annotation/new_version_Paulina_june2025/LYPA1_2A.longest.cds.fa /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/
+mv /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/LYPA1_2A.longest.cds.fa /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/cds.fa
 
-# move and rename the protein file (the code for the protein needs to be the same as the code for the transcript, so we need to change the last "P" for a "T").
-zcat LYPA1_2A.longestpeptide.fa.gz | sed '/^>/ s/\(.*\)P/\1T/' > /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/protein.fa
+# copy and rename the protein fasta file
+cp ../../LYPA1_2A.longestpeptide.fa.gz /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/
+gunzip /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/LYPA1_2A.longestpeptide.fa.gz
+mv /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/LYPA1_2A.longestpeptide.fa /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/protein.fa
 ```
 
 Now we can build the database with the script [snpeff_build_database.sh](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/functional_annotation/snpeff_build_database.sh):
