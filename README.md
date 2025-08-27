@@ -266,11 +266,12 @@ sbatch -c 5 --mem=5GB -t 00:10:00 /home/csic/eye/lmf/scripts/variant_filtering/v
 
 
 NOTE: The final filter I applied for the reference panel for imputation is much more strict (missing in 1 individual maximum). See Rmd.
+
 ---
 
 # Functional annotation
 
-We want to functionally annotate the variants to asign them a degree of deleteriousness. We first run SnpEff to make sure there's no contamination. For that, we first need to [build the reference genome database](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/functional_annotation/README.md).
+We want to functionally annotate the variants to asign them a degree of deleteriousness. We first run SnpEff to make sure there's no contamination. For that, we first need to build the reference genome database. For more detail, go to [Functional annotation section](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/functional_annotation/README.md)
 
 ---
 
