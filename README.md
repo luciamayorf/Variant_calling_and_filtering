@@ -271,13 +271,13 @@ NOTE: The final filter I applied for the reference panel for imputation is much 
 
 # Functional annotation
 
-We want to functionally annotate the variants to asign them a degree of deleteriousness. We first run SnpEff to make sure there's no contamination. For that, we first need to build the reference genome database. For more detail, go to [Functional annotation section](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/functional_annotation/README.md)
+We want to functionally annotate the variants to asign them a degree of deleteriousness. We first run SnpEff to make sure there's no contamination. For that, we first need to build the reference genome database. For more detail, go to [Functional annotation section](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/functional_annotation/README.md).
 
 ---
 
 # Polarization
 
-To polarize the SNPs (defined ancestral vs. derived alleles, we followed the parsimony criteria (as Dani and Lorena) using three species as outgroups: tiger-cat-lynx rufus. For more details, see [Polarization]().
+To polarize the SNPs (defined ancestral vs. derived alleles, we followed the parsimony criteria (as Dani and Lorena) using three species as outgroups: tiger-cat-lynx rufus. For more details, see [Polarization section](https://github.com/luciamayorf/Variant_calling_and_filtering/tree/main/Polarization).
 
 
 
