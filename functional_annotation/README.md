@@ -41,7 +41,7 @@ sed -i 's/ partial_cds//' LYPA1_2A.longest.cds.fa
 diff <(zgrep ">" ../../LYPA1_2A.longestpeptide.fa.gz | sort) <(grep ">" LYPA1_2A.longest.cds.fa | sort)
 ```
 
-To generate the new GFF3 file, I use the custom script [gff_longest_generation](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/functional_annotation/gff_longest_generation.sh):
+To generate the new GFF3 file, I use the custom script [gff_longest_single_transcript](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/functional_annotation/gff_longest_single_transcript.sh):
 ```bash
 # Generate the single gff3:
 sbatch -t 04:00:00 -c 1 --mem=500M /home/csic/eye/lmf/scripts/functional_annotation/gff_longest_single_transcript.sh # job ID: 13672539
@@ -75,18 +75,64 @@ gunzip /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/LYPA1_2A.l
 mv /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/LYPA1_2A.longestpeptide.fa /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A/protein.fa
 ```
 
-Now we can build the database with the script [snpeff_build_database.sh](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/functional_annotation/snpeff_build_database.sh):
+Before building the database, I need to change the cds and protein files to have the transcript name instead of the product name (they need to match, otherwise the database building won't work).
+
 ```{bash}
-sbatch -t 00:05:00 --mem 10G /home/csic/eye/lmf/scripts/functional_annotation/snpeff/snpeff_build_database.sh     # job ID: 7509429
+cd /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/data/LYPA1_2A
+
+# Step 1: Create a mapping file from IDs in cds.fa (the product names) to transcripts in genes.gff
+awk '/^>/ {print substr($1,2)}' cds.fa | grep -wFf - genes.gff | cut -f9 | cut -f4,1 -d';' | sed 's/ID=//; s/product=//' | awk -F '[;]' '{print $2"\t"$1}' > id_to_transcript.tsv
+
+# Step 2: Use awk to replace IDs in cds.fa with transcripts, based on the mapping file
+awk 'BEGIN{FS=OFS="\t"} 
+    NR==FNR {map[$1]=$2; next} 
+    /^>/ {
+        split($0, parts, " ", seps); 
+        sub(/^>/, "", parts[1]); 
+        if(parts[1] in map) 
+            print ">" map[parts[1]] seps[1] parts[2]; 
+        else 
+            print ">" parts[1] seps[1] parts[2]; 
+    } 
+    !/^>/ {print}' id_to_transcript.tsv cds.fa > cds_replaced.fa
+
+# After checking that everything went well and all the partial cds are retained, we can overwrite the original cds.fa file (because we have it in the polarization folder: LYPA1_2A.longest.cds.fa)
+mv cds_replaced.fa cds.fa
+
+# we have to do the same for the protein.fa file, change all the product names to transcript names
+awk 'BEGIN{FS=OFS="\t"} 
+    NR==FNR {map[$1]=$2; next} 
+    /^>/ {
+        split($0, parts, " ", seps); 
+        sub(/^>/, "", parts[1]); 
+        if(parts[1] in map) 
+            print ">" map[parts[1]] seps[1] parts[2]; 
+        else 
+            print ">" parts[1] seps[1] parts[2]; 
+    } 
+    !/^>/ {print}' id_to_transcript.tsv protein.fa > protein_replaced.fa
+
+# we can overwrite the original protein.fa file (because we have it in the polarization folder)
+mv protein_replaced.fa protein.fa
 ```
 
-CDS percentage error: 0.27%. Protein percentage error: 4.64%.
+Now we can build the database with the script [snpeff_build_database.sh](https://github.com/luciamayorf/Variant_calling_and_filtering/blob/main/functional_annotation/snpeff_build_database.sh):
+```{bash}
+sbatch -t 00:05:00 --mem 10G /home/csic/eye/lmf/scripts/functional_annotation/snpeff/snpeff_build_database.sh     # job ID: 13679648
+
+# check the database
+java -Xmx16g -jar $EBROOTSNPEFF/snpEff.jar dump LYPA1_2A -c /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/snpEff.config | less -S
+grep "Error percentage" /mnt/lustre/scratch/nlsas/home/csic/eye/lmf/logs/functional_annotation/snpeff/slurm-13679648.out
+```
+
+CDS percentage error: 0.2589%. Protein percentage error: 0.267%.
 
 ## Running SnpEff
 
 Dani runs SnpEff defining intervals in a BED file. This gives the variants intersecting those regions the annotation provided by the BED file. They have a very detailed annotation file, containing intergenic regions (and promoters, upstream/downstream, UTRs, etc.), but we don't have that information (only genes, transcripts, cds and exons).
 
 ```{bash}
-java -Xmx16g -jar $EBROOTSNPEFF/snpEff.jar LYPA1_2A -v -c /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/snpEff.config -s "/mnt/netapp2/Store_csebdjgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/functional_annotation/snpeff/snpeff_c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.miss.html" -csvStats "/mnt/netapp2/Store_csebdjgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/functional_annotation/snpeff/snpeff_c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.miss.csv" /mnt/netapp2/Store_csebdjgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.miss.vcf > /mnt/netapp2/Store_csebdjgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/functional_annotation/snpeff/c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.miss_annotated.vcf.gz
+java -Xmx16g -jar $EBROOTSNPEFF/snpEff.jar LYPA1_2A -v -c /mnt/netapp1/Store_CSIC/home/csic/eye/lmf/snpEff/snpEff.config -s "/mnt/netapp2/Store_csebdjgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/functional_annotation/snpeff/new_version_Paulina_june2025/snpeff_c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.miss.html" -csvStats "/mnt/netapp2/Store_csebdjgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/functional_annotation/snpeff/new_version_Paulina_june2025/snpeff_c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.miss.csv" /mnt/netapp2/Store_csebdjgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.miss.vcf > /mnt/netapp2/Store_csebdjgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/functional_annotation/snpeff/new_version_Paulina_june2025/c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.miss_annotated.vcf
+bgzip /mnt/netapp2/Store_csebdjgl/lynx_genome/lynx_data/mLynPar1.2_ref_vcfs/novogene_lp_sept23/functional_annotation/snpeff/new_version_Paulina_june2025/c_lp_all_novogene_sept23_mLynPar1.2_ref.filter5_QUAL20_rd.miss_annotated.vcf
 ```
 
